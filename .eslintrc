@@ -18,7 +18,10 @@
         ],
         "func-names":[
             0
-        ]
+        ],
+        "no-underscore-dangle":[
+            0
+        ],
     },
     "env": {
         "browser": true

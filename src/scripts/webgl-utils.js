@@ -1,3 +1,5 @@
+const Viva = require('./vivagraph');
+
 const txNodeColor = 0x1D84B5;
 const inputNodeColor = 0x41D3BD;
 const outputNodeColor = 0xE8E288;
