@@ -9,7 +9,7 @@ module.exports = {
     new CopyWebpackPlugin([
       { from: './src/index.html', to: './index.html' },
       { from: './src/styles/normalize.css', to: './normailze.css' },
-      { from: './src/styles/style.css', to: './style.css ' },
+      { from: './src/styles/style.css', to: './style.css' },
     ]),
   ],
   devtool: 'source-map',
