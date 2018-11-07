@@ -10,7 +10,8 @@
         "no-unused-expressions": [
             "error",
             {
-                "allowTernary": true
+                "allowTernary": true,
+                "allowShortCircuit": true
             }
         ],
         "no-mixed-operators":[

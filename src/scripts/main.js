@@ -18,12 +18,71 @@ const SocketUtils = (function () {
 
 
 const TransactionUtils = (function () {
-  const handleMessage = (message) => {
-    const tx = JSON.parse(event.data);
-    if (tx.op === 'utx') {
-      console.log(tx.x);
+  const _buildLinks = (links, hash, nodes) => {
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i];
+      // Handle input case
+      node.prev_out && links.push({
+        source: node.prev_out.addr,
+        target: hash,
+        hash,
+        type: 2,
+      });
+      // Handle ouptut case
+      node.addr && links.push({
+        source: hash,
+        target: node.addr,
+        hash,
+        type: 3,
+      });
     }
   };
+
+  const _buildNodesFromLinks = (links) => {
+    const typeLookup = {
+      2: link => (
+        {
+          addr: link.source,
+          data: { type: 2, hash: link.hash },
+          source: link.hash,
+          target: link.source,
+        }
+      ),
+      3: link => (
+        {
+          addr: link.target,
+          data: { type: 3, hash: link.hash },
+          source: link.target,
+          target: link.hash,
+        }
+
+      ),
+    };
+
+    for (let i = 0; i < links.length; i++) {
+      const link = links[i];
+      const fn = typeLookup[link.type];
+      const node = fn && fn(link);
+      App.addNode(node.addr, node.data);
+      App.addLink(node.source, node.target);
+    }
+  };
+
+  const handleMessage = (message) => {
+    const links = [];
+    const tx = JSON.parse(message.data);
+    if (tx.op === 'utx') {
+      const { inputs, out, hash } = tx.x;
+      // Add transaction node
+      App.addNode(hash, { type: 1 });
+      // Loop over inputs, create links
+      _buildLinks(links, hash, inputs);
+      _buildLinks(links, hash, out);
+      _buildNodesFromLinks(links);
+    }
+  };
+
+
   return {
     handleMessage,
   };
@@ -55,7 +114,7 @@ const App = (function () {
     this.color = color;
   }
 
-  function _getNodeColor(node) {
+  const _getNodeColor = (node) => {
     const colorMap = {
       1: () => WebglUtils.getTxNodeColor(),
       2: () => WebglUtils.getInputNodeColor(),
@@ -65,7 +124,7 @@ const App = (function () {
     if (node.data && colorMap[node.data.type]) {
       return colorMap[node.data.type]();
     } return WebglUtils.getUnknownNodeColor();
-  }
+  };
 
   const graph = Viva.Graph.graph();
   const layout = Viva.Graph.Layout.forceDirected(graph, FORCE_CONFIG);
@@ -96,12 +155,18 @@ const App = (function () {
     }
   };
 
-  const addNode = (hash, typeNumber) => {
-    graph.addNode(hash, { type: typeNumber });
+  const addNode = (hash, data) => {
+    graph.addNode(hash, data);
   };
+
+  const addLink = (source, target) => {
+    graph.addLink(source, target);
+  };
+
   return {
     startGraph,
-    getGraph,
+    addNode,
+    addLink,
   };
 }());
 
