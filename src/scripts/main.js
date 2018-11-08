@@ -1,5 +1,6 @@
 const Viva = require('./vivagraph');
 const WebglUtils = require('./webgl-utils');
+const Sample = require('./sample');
 
 const SocketUtils = (function () {
   const socket = new WebSocket('wss://ws.blockchain.info/inv');
@@ -18,67 +19,42 @@ const SocketUtils = (function () {
 
 
 const TransactionUtils = (function () {
-  const _buildLinks = (links, hash, nodes) => {
-    for (let i = 0; i < nodes.length; i++) {
-      const node = nodes[i];
-      // Handle input case
-      node.prev_out && links.push({
-        source: node.prev_out.addr,
-        target: hash,
-        hash,
-        type: 2,
-      });
-      // Handle ouptut case
-      node.addr && links.push({
-        source: hash,
-        target: node.addr,
-        hash,
-        type: 3,
-      });
-    }
-  };
-
-  const _buildNodesFromLinks = (links) => {
-    const typeLookup = {
-      2: link => (
-        {
-          addr: link.source,
-          data: { type: 2, hash: link.hash },
-          source: link.hash,
-          target: link.source,
-        }
-      ),
-      3: link => (
-        {
-          addr: link.target,
-          data: { type: 3, hash: link.hash },
-          source: link.target,
-          target: link.hash,
-        }
-
-      ),
-    };
-
-    for (let i = 0; i < links.length; i++) {
-      const link = links[i];
-      const fn = typeLookup[link.type];
-      const node = fn && fn(link);
-      App.addNode(node.addr, node.data);
-      App.addLink(node.source, node.target);
-    }
-  };
-
   const handleMessage = (message) => {
     const links = [];
     const tx = JSON.parse(message.data);
     if (tx.op === 'utx') {
       const { inputs, out, hash } = tx.x;
-      // Add transaction node
-      App.addNode(hash, { type: 1 });
-      // Loop over inputs, create links
-      _buildLinks(links, hash, inputs);
-      _buildLinks(links, hash, out);
-      _buildNodesFromLinks(links);
+
+      App.addNode(hash, { type: 'tx' });
+      inputs.forEach((input) => {
+        // if there is a node of type output with the same ID but different hash, don't add the node
+
+        const addr = `${input.prev_out.addr}input${hash}`;
+        const matchedNodes = App.findMatchingNodes(addr, hash, 'input', 'output');
+        if (!matchedNodes.length) {
+          App.addNode(addr, { type: 'input', hash });
+          App.addLink(addr, hash);
+        } else {
+          matchedNodes.forEach((matchedNode) => {
+            App.addLink(matchedNode.id, hash);
+            App.setTypeMixed(matchedNode);
+          });
+        }
+      });
+
+      out.forEach((output) => {
+        const addr = `${output.addr}output${hash}`;
+        const matchedNodes = App.findMatchingNodes(addr, hash, 'output', 'input');
+        if (!matchedNodes.length) {
+          App.addNode(addr, { type: 'output', hash });
+          App.addLink(addr, hash);
+        } else {
+          matchedNodes.forEach((matchedNode) => {
+            App.addLink(matchedNode.id, hash);
+            App.setTypeMixed(matchedNode);
+          });
+        }
+      });
     }
   };
 
@@ -116,10 +92,10 @@ const App = (function () {
 
   const _getNodeColor = (node) => {
     const colorMap = {
-      1: () => WebglUtils.getTxNodeColor(),
-      2: () => WebglUtils.getInputNodeColor(),
-      3: () => WebglUtils.getOutputNodeColor(),
-      4: () => WebglUtils.getMixedNodeColor(),
+      tx: () => WebglUtils.getTxNodeColor(),
+      input: () => WebglUtils.getInputNodeColor(),
+      output: () => WebglUtils.getOutputNodeColor(),
+      mixed: () => WebglUtils.getMixedNodeColor(),
     };
     if (node.data && colorMap[node.data.type]) {
       return colorMap[node.data.type]();
@@ -151,7 +127,18 @@ const App = (function () {
     renderer.run();
     while (renderer.getTransform().scale > INITIAL_ZOOM) {
       renderer.zoomOut();
-      SocketUtils.startSocket(TransactionUtils.handleMessage);
+    }
+    SocketUtils.startSocket(TransactionUtils.handleMessage);
+  };
+
+  const loadSamples = () => {
+    renderer.run();
+    while (renderer.getTransform().scale > INITIAL_ZOOM) {
+      renderer.zoomOut();
+    }
+    const { txs } = Sample;
+    for (let i = 0; i < txs.length; i++) {
+      TransactionUtils.handleMessage(({ data: JSON.stringify(txs[i]) }));
     }
   };
 
@@ -163,12 +150,36 @@ const App = (function () {
     graph.addLink(source, target);
   };
 
+  const colorMixedNodes = () => {
+    graph.forEachNode((node) => {
+      if (node.data.type !== 1 && node.links.length > 1) {
+        const nodeUI = graphics.getNodeUI(node.id);
+        nodeUI.color = WebglUtils.getMixedNodeColor();
+        renderer.rerender();
+      }
+    });
+  };
+
+  const setTypeMixed = (node) => {
+    const nodeUI = graphics.getNodeUI(node.id);
+    nodeUI.color = WebglUtils.getMixedNodeColor();
+    renderer.rerender();
+  };
+
+  const lookupNode = id => graph.getNode(id);
+
+  const findMatchingNodes = (id, hash, type, test) => graph.getNodesWithId(id, hash, type, test);
+
   return {
     startGraph,
+    loadSamples,
     addNode,
     addLink,
+    colorMixedNodes,
+    setTypeMixed,
+    lookupNode,
+    findMatchingNodes,
   };
 }());
 
 App.startGraph();
-

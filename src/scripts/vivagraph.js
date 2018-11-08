@@ -1,4 +1,4 @@
-!function(e){if("object"==typeof exports&&"undefined"!=typeof module)module.exports=e();else if("function"==typeof define&&define.amd)define([],e);else{var f;"undefined"!=typeof window?f=window:"undefined"!=typeof global?f=global:"undefined"!=typeof self&&(f=self),f.Viva=e()}}(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+!(function (e) { if ('object' == typeof exports && 'undefined'!==typeof module)module.exports = e(); else if ('function'===typeof define && define.amd)define([], e); else { let f; 'undefined'!==typeof window ? f = window:'undefined'!==typeof global ? f = global:'undefined' != typeof self && (f = self), f.Viva = e(); } }(() => {var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 /**
  * This is an entry point for global namespace. If you want to use separate
  * modules individually - you are more than welcome to do so.
@@ -1733,6 +1733,7 @@ function createGraph(options) {
      * @return {node} in with requested identifier or undefined if no such node exists.
      */
     getNode: getNode,
+    getNodesWithId: getNodesWithId,
 
     /**
      * Gets number of nodes in this graph.
@@ -1907,6 +1908,20 @@ function createGraph(options) {
 
   function getNode(nodeId) {
     return nodes[nodeId];
+  }
+
+  function getNodesWithId(id, hash, type, test){
+    const foundNodes = [];
+    const addr = id.substring(0, id.indexOf(type))
+    const filteredKeys = Object.keys(nodes).filter((key) => {
+      return addr === key.substring(0, key.indexOf(test))
+    })
+    filteredKeys.forEach((key) => {
+      if(nodes[key].data && nodes[key].data.type === test && nodes[key].data.hash !== hash){
+        foundNodes.push(nodes[key])
+      }
+    })
+    return foundNodes;
   }
 
   function removeNode(nodeId) {
@@ -7315,4 +7330,4 @@ function webglSquare(size, color) {
 module.exports = '0.8.1';
 
 },{}]},{},[1])(1)
-});
+}));
