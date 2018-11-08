@@ -1734,6 +1734,7 @@ function createGraph(options) {
      */
     getNode: getNode,
     getNodesWithId: getNodesWithId,
+    getNodeCount: getNodeCount,
 
     /**
      * Gets number of nodes in this graph.
@@ -1922,6 +1923,10 @@ function createGraph(options) {
       }
     })
     return foundNodes;
+  }
+
+  function getNodeCount(){
+    return Object.keys(nodes).length;
   }
 
   function removeNode(nodeId) {

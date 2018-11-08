@@ -48,6 +48,7 @@ const TransactionUtils = (function () {
     if (tx.op === 'utx') {
       _buildNodesAndLinks(tx);
     }
+    console.log(App.countNodes());
   };
 
 
@@ -100,7 +101,7 @@ const App = (function () {
   const circleNode = WebglUtils.buildCircleNodeShader();
   graphics.setNodeProgram(circleNode);
   graphics.node(node => new _WebglCircle(50 * SCALE_COEFFICIENT, _getNodeColor(node)));
-  graphics.link(link => Viva.Graph.View.webglLine(WebglUtils.getLinkColor()));
+  graphics.link(() => Viva.Graph.View.webglLine(WebglUtils.getLinkColor()));
   const renderer = Viva.Graph.View.renderer(
     graph,
     {
@@ -158,9 +159,9 @@ const App = (function () {
     renderer.rerender();
   };
 
-  const lookupNode = id => graph.getNode(id);
-
   const findMatchingNodes = (id, hash, type, test) => graph.getNodesWithId(id, hash, type, test);
+
+  const countNodes = () => graph.getNodeCount();
 
   return {
     startGraph,
@@ -169,8 +170,8 @@ const App = (function () {
     addLink,
     colorMixedNodes,
     setTypeMixed,
-    lookupNode,
     findMatchingNodes,
+    countNodes,
   };
 }());
 
