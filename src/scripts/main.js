@@ -19,42 +19,34 @@ const SocketUtils = (function () {
 
 
 const TransactionUtils = (function () {
+  const _addNodes = (nodes, hash, type) => {
+    const test = type === 'input' ? 'output' : 'input';
+    nodes.forEach((node) => {
+      const addr = type === 'input' ? node.prev_out.addr + type + hash : node.addr + type + hash;
+      const matchedNodes = App.findMatchingNodes(addr, hash, type, test);
+      if (!matchedNodes.length) {
+        App.addNode(addr, { type, hash });
+        App.addLink(addr, hash);
+      } else {
+        matchedNodes.forEach((matchedNode) => {
+          App.addLink(matchedNode.id, hash);
+          App.setTypeMixed(matchedNode);
+        });
+      }
+    });
+  };
+  const _buildNodesAndLinks = (tx) => {
+    const { inputs, out, hash } = tx.x;
+    // Add node for transaction
+    App.addNode(hash, { type: 'tx' });
+    _addNodes(inputs, hash, 'input');
+    _addNodes(out, hash, 'output');
+  };
+
   const handleMessage = (message) => {
-    const links = [];
     const tx = JSON.parse(message.data);
     if (tx.op === 'utx') {
-      const { inputs, out, hash } = tx.x;
-
-      App.addNode(hash, { type: 'tx' });
-      inputs.forEach((input) => {
-        // if there is a node of type output with the same ID but different hash, don't add the node
-
-        const addr = `${input.prev_out.addr}input${hash}`;
-        const matchedNodes = App.findMatchingNodes(addr, hash, 'input', 'output');
-        if (!matchedNodes.length) {
-          App.addNode(addr, { type: 'input', hash });
-          App.addLink(addr, hash);
-        } else {
-          matchedNodes.forEach((matchedNode) => {
-            App.addLink(matchedNode.id, hash);
-            App.setTypeMixed(matchedNode);
-          });
-        }
-      });
-
-      out.forEach((output) => {
-        const addr = `${output.addr}output${hash}`;
-        const matchedNodes = App.findMatchingNodes(addr, hash, 'output', 'input');
-        if (!matchedNodes.length) {
-          App.addNode(addr, { type: 'output', hash });
-          App.addLink(addr, hash);
-        } else {
-          matchedNodes.forEach((matchedNode) => {
-            App.addLink(matchedNode.id, hash);
-            App.setTypeMixed(matchedNode);
-          });
-        }
-      });
+      _buildNodesAndLinks(tx);
     }
   };
 
