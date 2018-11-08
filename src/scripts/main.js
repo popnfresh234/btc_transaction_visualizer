@@ -143,16 +143,6 @@ const App = (function () {
     graph.addLink(source, target);
   };
 
-  const colorMixedNodes = () => {
-    graph.forEachNode((node) => {
-      if (node.data.type !== 1 && node.links.length > 1) {
-        const nodeUI = graphics.getNodeUI(node.id);
-        nodeUI.color = WebglUtils.getMixedNodeColor();
-        renderer.rerender();
-      }
-    });
-  };
-
   const setTypeMixed = (node) => {
     const nodeUI = graphics.getNodeUI(node.id);
     nodeUI.color = WebglUtils.getMixedNodeColor();
@@ -168,7 +158,6 @@ const App = (function () {
     loadSamples,
     addNode,
     addLink,
-    colorMixedNodes,
     setTypeMixed,
     findMatchingNodes,
     countNodes,
