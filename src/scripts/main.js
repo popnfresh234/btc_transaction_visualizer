@@ -26,10 +26,10 @@ const TransactionUtils = (function () {
       const matchedNodes = App.findMatchingNodes(addr, hash, type, test);
       if (!matchedNodes.length) {
         App.addNode(addr, { type, hash });
-        App.addLink(addr, hash);
+        App.addLink(hash, addr);
       } else {
         matchedNodes.forEach((matchedNode) => {
-          App.addLink(matchedNode.id, hash);
+          App.addLink(hash, matchedNode.id);
           App.setTypeMixed(matchedNode);
         });
       }
@@ -48,7 +48,9 @@ const TransactionUtils = (function () {
     if (tx.op === 'utx') {
       _buildNodesAndLinks(tx);
     }
-    console.log(App.countNodes());
+    while (App.countNodes() > App.getNodeLimit()) {
+      App.pruneNodes();
+    }
   };
 
 
@@ -58,6 +60,7 @@ const TransactionUtils = (function () {
 }());
 
 const App = (function () {
+  const NODE_LIMIT = 1000;
   const SCALE_COEFFICIENT = 4;
   const INITIAL_ZOOM = 0.04;
   const FORCE_CONFIG = {
@@ -153,6 +156,45 @@ const App = (function () {
 
   const countNodes = () => graph.getNodeCount();
 
+  const getNodeLimit = () => NODE_LIMIT;
+
+  const _isBoringTx = (node) => {
+    let boring = true;
+    const { links } = node;
+    for (let i = 0; i < links.length; i++) {
+      const secondDegreeNode = graph.getNode(links[i].toId);
+      const secondDegreeNodeLinks = secondDegreeNode.links;
+      if (secondDegreeNodeLinks.length > 1) {
+        boring = false;
+      }
+    } return boring;
+  };
+
+  const _purgeNode = (node) => {
+    const { links } = node;
+    const nodesToPrune = [];
+    for (let i = 0; i < links.length; i++) {
+      const nodeToPruneId = links[i].toId;
+      nodesToPrune.push(nodeToPruneId);
+    }
+    nodesToPrune.forEach((nodeId) => {
+      graph.removeNode(nodeId);
+    });
+    graph.removeNode(node.id);
+  };
+
+  const pruneNodes = () => {
+    const nodes = graph.getAllNodes();
+    const keys = Object.keys(nodes);
+    for (let i = keys.length - 1; i >= 0; i--) {
+      const node = nodes[keys[i]];
+      if (node && node.data.type === 'tx' && _isBoringTx(node)) {
+        _purgeNode(node);
+        break;
+      }
+    }
+  };
+
   return {
     startGraph,
     loadSamples,
@@ -161,6 +203,8 @@ const App = (function () {
     setTypeMixed,
     findMatchingNodes,
     countNodes,
+    getNodeLimit,
+    pruneNodes,
   };
 }());
 

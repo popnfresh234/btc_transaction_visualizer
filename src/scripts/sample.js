@@ -302,7 +302,34 @@ const txs = [
         spent: false, tx_index: 387517028, type: 0, addr: '1HbqTMYn9sfy6qLSF7rDfgAz1PXy1TNNv3', value: 312838, n: 1, script: '76a914b6189a593c8cd400a97ebe2c80013d0fb12b486988ac',
       }],
     },
-  }];
+  },
+  {
+    op: 'utx',
+    x: {
+      lock_time: 0,
+      ver: 1,
+      size: 225,
+      inputs: [{
+        sequence: 4294967295,
+        prev_out: {
+          spent: true, tx_index: 387510267, type: 0, addr: 'a1HbqTMYn9sfy6qLSF7rDfgAz1PXy1TNNv3', value: 319769, n: 1, script: '76a914b6189a593c8cd400a97ebe2c80013d0fb12b486988ac',
+        },
+        script: '47304402203a370defa0b1b5610ee5db402ea4b70a338204513fe3c6629e6a7158c8e53e4c0220055bd28e611af983b1fb21d72e958800922c02b907523d0c57c5e3108cfaf268012102dd85fb3d12e513a9dd5e0e97b49423a883f7fed7b64447140e31fba3d147bd4e',
+      }],
+      time: 1541629880,
+      tx_index: 387517028,
+      vin_sz: 1,
+      hash: 'fcdcee537b78b8449a2470908d5651d4ae6496f538f1d442f3499e4a59edb19d9',
+      vout_sz: 2,
+      relayed_by: '127.0.0.1',
+      out: [{
+        spent: false, tx_index: 387517028, type: 0, addr: 'a1Gkost12NZPubF3LXGKRrBy3GT7tN7UVS2', value: 5575, n: 0, script: '76a914acd2e77d34e2783f5580a3561aee3be4de2ac79388ac',
+      }, {
+        spent: false, tx_index: 387517028, type: 0, addr: 'a1HbqTMYn9sfy6qLSF7rDfgAz1PXy1TNNv3', value: 312838, n: 1, script: '76a914b6189a593c8cd400a97ebe2c80013d0fb12b486988ac',
+      }],
+    },
+  },
+];
 
 
 module.exports = {
