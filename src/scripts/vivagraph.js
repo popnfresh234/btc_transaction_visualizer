@@ -1769,6 +1769,7 @@
           getNodeCount,
           getAllNodes,
           getAllLinks,
+          getAllLinkedNodes,
           /**
      * Gets number of nodes in this graph.
      *
@@ -1966,6 +1967,10 @@
 
         function getAllLinks() {
           return links;
+        }
+
+        function getAllLinkedNodes(node) {
+
         }
 
         function removeNode(nodeId) {
@@ -5332,7 +5337,7 @@
             t.e += p.x;
             t.f += p.y;
 
-            const transform = `matrix(${t.a }, 0, 0,${t.d },${t.e },${t.f })`;
+            const transform = `matrix(${t.a}, 0, 0,${t.d},${t.e},${t.f})`;
             svgContainer.attr('transform', transform);
           },
 
@@ -5350,7 +5355,7 @@
             actualScale = t.a;
             offsetX = t.e;
             offsetY = t.f;
-            const transform = `matrix(${t.a }, 0, 0,${t.d},${t.e },${t.f})`;
+            const transform = `matrix(${t.a}, 0, 0,${t.d},${t.e},${t.f})`;
             svgContainer.attr('transform', transform);
 
             fireRescaled(this);

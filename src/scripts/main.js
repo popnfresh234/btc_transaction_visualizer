@@ -43,13 +43,44 @@ const TransactionUtils = (function () {
     _addNodes(out, hash, 'output');
   };
 
+  const _getLinkedNodeIds = (node, nodeIds) => {
+    if (!nodeIds.length) {
+      nodeIds.push(node.id);
+    }
+
+    const { links } = node;
+    let linkedId = '';
+    links.forEach((link) => {
+      if (node.data.type !== 'tx') {
+        linkedId = link.fromId;
+      } else {
+        linkedId = link.toId;
+      }
+      if (nodeIds.indexOf(linkedId) === -1) {
+        nodeIds.push(linkedId);
+        _getLinkedNodeIds(App.getNode(linkedId), nodeIds);
+      }
+    });
+    return nodeIds;
+  };
+
+  const _isBoring = (nodeIds) => {
+    let txCount = 0;
+    nodeIds.forEach((id) => {
+      if (id.indexOf('input') === -1 && id.indexOf('output') === -1) {
+        txCount++;
+      }
+    });
+    if (txCount > 2 || nodeIds.length > 4) {
+      return false;
+    } return true;
+  };
+
+
   const handleMessage = (message) => {
     const tx = JSON.parse(message.data);
     if (tx.op === 'utx') {
       _buildNodesAndLinks(tx);
-    }
-    while (App.countNodes() > App.getNodeLimit()) {
-      App.pruneNodes();
     }
   };
 
@@ -60,7 +91,7 @@ const TransactionUtils = (function () {
 }());
 
 const App = (function () {
-  const NODE_LIMIT = 1000;
+  const NODE_LIMIT = 50;
   const SCALE_COEFFICIENT = 4;
   const INITIAL_ZOOM = 0.04;
   const FORCE_CONFIG = {
@@ -115,8 +146,35 @@ const App = (function () {
     },
   );
   const events = Viva.Graph.webglInputEvents(graphics, graph);
+
+
+  const _getLinkedNodeIds = (node, nodeIds) => {
+    if (!nodeIds.length) {
+      nodeIds.push(node.id);
+    }
+
+    const { links } = node;
+    let linkedId = '';
+    links.forEach((link) => {
+      if (node.data.type !== 'tx') {
+        linkedId = link.fromId;
+      } else {
+        linkedId = link.toId;
+      }
+      if (nodeIds.indexOf(linkedId) === -1) {
+        nodeIds.push(linkedId);
+        _getLinkedNodeIds(App.getNode(linkedId), nodeIds);
+      }
+    });
+    return nodeIds;
+  };
+
   events.mouseEnter((node) => {
-    console.log(node);
+    const ids = _getLinkedNodeIds(node, []);
+    ids.forEach((id, index) => {
+      console.log(index);
+      graph.removeNode(id);
+    });
   });
 
   const startGraph = () => {
@@ -154,46 +212,15 @@ const App = (function () {
 
   const findMatchingNodes = (id, hash, type, test) => graph.getNodesWithId(id, hash, type, test);
 
-  const countNodes = () => graph.getNodeCount();
+  const getNodeCount = () => graph.getNodeCount();
 
   const getNodeLimit = () => NODE_LIMIT;
 
-  const _isBoringTx = (node) => {
-    let boring = true;
-    const { links } = node;
-    for (let i = 0; i < links.length; i++) {
-      const secondDegreeNode = graph.getNode(links[i].toId);
-      const secondDegreeNodeLinks = secondDegreeNode.links;
-      if (secondDegreeNodeLinks.length > 1) {
-        boring = false;
-      }
-    } return boring;
-  };
+  const getNode = nodeId => graph.getNode(nodeId);
 
-  const _purgeNode = (node) => {
-    const { links } = node;
-    const nodesToPrune = [];
-    for (let i = 0; i < links.length; i++) {
-      const nodeToPruneId = links[i].toId;
-      nodesToPrune.push(nodeToPruneId);
-    }
-    nodesToPrune.forEach((nodeId) => {
-      graph.removeNode(nodeId);
-    });
-    graph.removeNode(node.id);
-  };
+  const getAllNodes = () => graph.getAllNodes();
 
-  const pruneNodes = () => {
-    const nodes = graph.getAllNodes();
-    const keys = Object.keys(nodes);
-    for (let i = keys.length - 1; i >= 0; i--) {
-      const node = nodes[keys[i]];
-      if (node && node.data.type === 'tx' && _isBoringTx(node)) {
-        _purgeNode(node);
-        break;
-      }
-    }
-  };
+  const removeNode = id => graph.removeNode(id);
 
   return {
     startGraph,
@@ -202,9 +229,11 @@ const App = (function () {
     addLink,
     setTypeMixed,
     findMatchingNodes,
-    countNodes,
+    getNodeCount,
     getNodeLimit,
-    pruneNodes,
+    getNode,
+    getAllNodes,
+    removeNode,
   };
 }());
 
