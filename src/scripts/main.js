@@ -11,6 +11,10 @@ const SocketUtils = (function () {
     socket.onmessage = (event) => {
       callback(event);
     };
+
+    socket.onerror = (event) => {
+      console.log(event);
+    };
   };
   return {
     startSocket,
@@ -21,11 +25,11 @@ const SocketUtils = (function () {
 const TransactionUtils = (function () {
   const _addNodes = (nodes, hash, type) => {
     const test = type === 'input' ? 'output' : 'input';
-    nodes.forEach((node) => {
-      const addr = type === 'input' ? node.prev_out.addr + type + hash : node.addr + type + hash;
+    nodes.forEach((node, index) => {
+      const addr = type === 'input' ? node.prev_out.addr + type + hash + index : node.addr + type + hash + index;
       const matchedNodes = App.findMatchingNodes(addr, hash, type, test);
       if (!matchedNodes.length) {
-        App.addNode(addr, { type, hash });
+        App.addNode(addr, { type, hash, timestamp: new Date().getTime() });
         App.addLink(hash, addr);
       } else {
         matchedNodes.forEach((matchedNode) => {
@@ -35,10 +39,11 @@ const TransactionUtils = (function () {
       }
     });
   };
+
   const _buildNodesAndLinks = (tx) => {
     const { inputs, out, hash } = tx.x;
     // Add node for transaction
-    App.addNode(hash, { type: 'tx' });
+    App.addNode(hash, { type: 'tx', timestamp: new Date().getTime() });
     _addNodes(inputs, hash, 'input');
     _addNodes(out, hash, 'output');
   };
@@ -82,6 +87,18 @@ const TransactionUtils = (function () {
     if (tx.op === 'utx') {
       _buildNodesAndLinks(tx);
     }
+    if (App.getNodeCount() > App.getNodeLimit()) {
+      console.log(App.getNodeCount());
+      App.forEachNode((node) => {
+        if (node && new Date().getTime() - node.data.timestamp > App.getStaleNodeTime()) {
+          console.log('wtf?');
+          const linkedNodeIds = _getLinkedNodeIds(node, []);
+          linkedNodeIds.forEach((id) => {
+            App.removeNode(id);
+          });
+        }
+      });
+    }
   };
 
 
@@ -91,7 +108,8 @@ const TransactionUtils = (function () {
 }());
 
 const App = (function () {
-  const NODE_LIMIT = 50;
+  const NODE_LIMIT = 3000;
+  const STALE_NODE_TIME = 300000; // 5 min
   const SCALE_COEFFICIENT = 4;
   const INITIAL_ZOOM = 0.04;
   const FORCE_CONFIG = {
@@ -146,35 +164,8 @@ const App = (function () {
     },
   );
   const events = Viva.Graph.webglInputEvents(graphics, graph);
-
-
-  const _getLinkedNodeIds = (node, nodeIds) => {
-    if (!nodeIds.length) {
-      nodeIds.push(node.id);
-    }
-
-    const { links } = node;
-    let linkedId = '';
-    links.forEach((link) => {
-      if (node.data.type !== 'tx') {
-        linkedId = link.fromId;
-      } else {
-        linkedId = link.toId;
-      }
-      if (nodeIds.indexOf(linkedId) === -1) {
-        nodeIds.push(linkedId);
-        _getLinkedNodeIds(App.getNode(linkedId), nodeIds);
-      }
-    });
-    return nodeIds;
-  };
-
   events.mouseEnter((node) => {
-    const ids = _getLinkedNodeIds(node, []);
-    ids.forEach((id, index) => {
-      console.log(index);
-      graph.removeNode(id);
-    });
+    console.log(node);
   });
 
   const startGraph = () => {
@@ -216,11 +207,15 @@ const App = (function () {
 
   const getNodeLimit = () => NODE_LIMIT;
 
+  const getStaleNodeTime = () => STALE_NODE_TIME;
+
   const getNode = nodeId => graph.getNode(nodeId);
 
   const getAllNodes = () => graph.getAllNodes();
 
   const removeNode = id => graph.removeNode(id);
+
+  const forEachNode = callback => graph.forEachNode(callback);
 
   return {
     startGraph,
@@ -231,9 +226,11 @@ const App = (function () {
     findMatchingNodes,
     getNodeCount,
     getNodeLimit,
+    getStaleNodeTime,
     getNode,
     getAllNodes,
     removeNode,
+    forEachNode,
   };
 }());
 

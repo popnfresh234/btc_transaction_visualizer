@@ -5904,6 +5904,7 @@
         * @param linkUI visual representation of the link created by link() execution.
         * */
           releaseLink(link) {
+            try {
             if (linksCount > 0) { linksCount -= 1; }
             const linkUI = allLinks[link.id];
             delete allLinks[link.id];
@@ -5920,6 +5921,10 @@
               links[linkIdToRemove] = lastLinkUI;
               lastLinkUI.id = linkIdToRemove;
             }
+          } catch(err){
+            console.log(err)
+            console.log(link)
+          }
           },
 
           /**
@@ -7154,10 +7159,14 @@
           removeLink(ui) {
             if (linksCount > 0) { linksCount -= 1; }
             // swap removed link with the last link. This will give us O(1) performance for links removal:
+            try{
             if (ui.id < linksCount && linksCount > 0) {
               // using colors as a view to array buffer is okay here.
               utils.copyArrayPart(colors, ui.id * ATTRIBUTES_PER_PRIMITIVE, linksCount * ATTRIBUTES_PER_PRIMITIVE, ATTRIBUTES_PER_PRIMITIVE);
             }
+          } catch(err) {
+            console.log('removeLinkErr')
+          }
           },
 
           updateTransform(newTransform) {
