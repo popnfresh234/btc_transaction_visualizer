@@ -1,4 +1,5 @@
 // /* eslint-disable */
+
 !(function (e) { if (typeof exports === 'object' && typeof module !== 'undefined')module.exports = e(); else if (typeof define === 'function' && define.amd)define([], e); else { let f; typeof window !== 'undefined' ? f = window : typeof global !== 'undefined' ? f = global : typeof self !== 'undefined' && (f = self), f.Viva = e(); } }(() => {
   let define,
     module,
@@ -8,6 +9,7 @@
  * This is an entry point for global namespace. If you want to use separate
  * modules individually - you are more than welcome to do so.
  */
+const fuckNode =null;
 
       const random = require('ngraph.random');
 
@@ -1978,7 +1980,7 @@
           if (!node) {
             return false;
           }
-
+          fuckNode = Array.from(node.links);
           enterModification();
 
           const prevLinks = node.links;

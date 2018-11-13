@@ -1,5 +1,6 @@
 const Viva = require('./vivagraph');
 const WebglUtils = require('./webgl-utils');
+const uuidv4 = require('uuid/v4');
 const Sample = require('./sample');
 
 const SocketUtils = (function () {
@@ -25,17 +26,26 @@ const SocketUtils = (function () {
 const TransactionUtils = (function () {
   const _addNodes = (nodes, hash, type) => {
     const test = type === 'input' ? 'output' : 'input';
-    nodes.forEach((node, index) => {
-      const addr = type === 'input' ? node.prev_out.addr + type + hash + index : node.addr + type + hash + index;
-      const matchedNodes = App.findMatchingNodes(addr, hash, type, test);
-      if (!matchedNodes.length) {
-        App.addNode(addr, { type, hash, timestamp: new Date().getTime() });
-        App.addLink(hash, addr);
-      } else {
-        matchedNodes.forEach((matchedNode) => {
-          App.addLink(hash, matchedNode.id);
-          App.setTypeMixed(matchedNode);
-        });
+    nodes.forEach((node) => {
+      let addr = null;
+      const addrLookup = {
+        input: () => (node.prev_out.addr ? node.prev_out.addr + type + uuidv4() + hash : null),
+        output: () => (node.addr ? node.addr + type + uuidv4() + hash : null),
+      };
+
+      const fn = addrLookup[type];
+      if (fn) addr = fn();
+      if (addr) {
+        const matchedNodes = App.findMatchingNodes(addr, hash, type, test);
+        if (!matchedNodes.length) {
+          App.addNode(addr, { type, hash, timestamp: new Date().getTime() });
+          App.addLink(hash, addr);
+        } else {
+          matchedNodes.forEach((matchedNode) => {
+            App.addLink(hash, matchedNode.id);
+            App.setTypeMixed(matchedNode);
+          });
+        }
       }
     });
   };
@@ -55,7 +65,8 @@ const TransactionUtils = (function () {
 
     const { links } = node;
     let linkedId = '';
-    links.forEach((link) => {
+    for (let i = 0; i < links.length; i++) {
+      const link = links[i];
       if (node.data.type !== 'tx') {
         linkedId = link.fromId;
       } else {
@@ -65,20 +76,26 @@ const TransactionUtils = (function () {
         nodeIds.push(linkedId);
         _getLinkedNodeIds(App.getNode(linkedId), nodeIds);
       }
-    });
+    }
     return nodeIds;
   };
 
   const _isBoring = (nodeIds) => {
     let txCount = 0;
-    nodeIds.forEach((id) => {
+    // End early if 4 or more nodes
+    if (nodeIds.length > 4) {
+      return false;
+    }
+    for (let i = 0; i < nodeIds.length; i++) {
+      const id = nodeIds[i];
       if (id.indexOf('input') === -1 && id.indexOf('output') === -1) {
         txCount++;
       }
-    });
-    if (txCount > 2 || nodeIds.length > 4) {
+    }
+    if (txCount > 2) {
       return false;
-    } return true;
+    }
+    return true;
   };
 
 
@@ -87,16 +104,10 @@ const TransactionUtils = (function () {
     if (tx.op === 'utx') {
       _buildNodesAndLinks(tx);
     }
+    console.log('Node Count', App.getNodeCount());
     if (App.getNodeCount() > App.getNodeLimit()) {
-      console.log(App.getNodeCount());
       App.forEachNode((node) => {
-        if (node && new Date().getTime() - node.data.timestamp > App.getStaleNodeTime()) {
-          console.log('wtf?');
-          const linkedNodeIds = _getLinkedNodeIds(node, []);
-          linkedNodeIds.forEach((id) => {
-            App.removeNode(id);
-          });
-        }
+        App.removeNode(node.id);
       });
     }
   };
@@ -109,7 +120,7 @@ const TransactionUtils = (function () {
 
 const App = (function () {
   const NODE_LIMIT = 3000;
-  const STALE_NODE_TIME = 300000; // 5 min
+  const STALE_NODE_TIME = 60000; // 3 min
   const SCALE_COEFFICIENT = 4;
   const INITIAL_ZOOM = 0.04;
   const FORCE_CONFIG = {
@@ -163,9 +174,31 @@ const App = (function () {
       prerender: true,
     },
   );
+
+  const _getLinkedNodeIds = (node, nodeIds) => {
+    if (!nodeIds.length) {
+      nodeIds.push(node.id);
+    }
+
+    const { links } = node;
+    let linkedId = '';
+    links.forEach((link) => {
+      if (node.data.type !== 'tx') {
+        linkedId = link.fromId;
+      } else {
+        linkedId = link.toId;
+      }
+      if (nodeIds.indexOf(linkedId) === -1) {
+        nodeIds.push(linkedId);
+        _getLinkedNodeIds(App.getNode(linkedId), nodeIds);
+      }
+    });
+    return nodeIds;
+  };
+
   const events = Viva.Graph.webglInputEvents(graphics, graph);
   events.mouseEnter((node) => {
-    console.log(node);
+
   });
 
   const startGraph = () => {
@@ -196,6 +229,7 @@ const App = (function () {
   };
 
   const setTypeMixed = (node) => {
+    node.data.type = 'mixed';
     const nodeUI = graphics.getNodeUI(node.id);
     nodeUI.color = WebglUtils.getMixedNodeColor();
     renderer.rerender();
@@ -217,6 +251,8 @@ const App = (function () {
 
   const forEachNode = callback => graph.forEachNode(callback);
 
+  const removeLink = link => graph.removeLink(link);
+
   return {
     startGraph,
     loadSamples,
@@ -231,6 +267,7 @@ const App = (function () {
     getAllNodes,
     removeNode,
     forEachNode,
+    removeLink,
   };
 }());
 
