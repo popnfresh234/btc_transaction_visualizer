@@ -4,22 +4,45 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>BTC Transaction Visualizer</title>
-    <link rel="shortcut icon" href="favicon.ico?" type="image/x-icon">    
+    <link rel="shortcut icon" href="favicon.ico?" type="image/x-icon">
     <link type='text/html' rel="stylesheet" href="normalize.css">
     <link rel="stylesheet" type="text/css" href="skeleton.css">
     <link type='text/css' rel="stylesheet" href="style.css">
-    <style type='text/css'>
-        body,
-        svg {
-            height: 100%;
-            width: 100%;
-            position: absolute;
-            margin: 0;
-        }
-    </style>
+
+
 </head>
 
 <body>
+    <div class="container u-full-width u-max-full-width">
+        <div class="row">
+            <div class="two columns">
+                <div class="container u-full-width u-max-full-width">
+                    <div class="title-row row">
+                        BTC Transaction Visualizer
+                    </div>
+                    <div class="divider"></div>
+                    <div class="info-row row">
+                        <div class="six columns">Elapsed Time: </div>
+                        <div id="elapsed-time" class="six columns"></div>
+                    </div>
+                    <div class="info-row row">
+                            <div class="six columns">Stale Node Time: </div>
+                            <div id="stale-node-time" class="six columns"></div>
+                        </div>
+                    <div class="info-row row">
+                        <div class="six columns">Node Count: </div>
+                        <div id=node-count class="six columns"></div>
+                    </div>
+                    <div class="info-row row">
+                            <div class="six columns">Node Limit: </div>
+                            <div id= "node-limit" class="six columns"></div>
+                        </div>
+
+                </div>
+            </div>
+            <div id="graph-container" class="ten columns"></div>
+        </div>
+    </div>
     <script src="./bundle.js"></script>
 </body>
 

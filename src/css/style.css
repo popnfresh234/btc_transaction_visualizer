@@ -1,4 +1,4 @@
-canvas {
+/* canvas {
     padding: 0;
     margin: auto;
     display: block;
@@ -7,8 +7,29 @@ canvas {
     bottom: 0;
     left: 0;
     right: 0;
-}
+} */
+
 
 body {
     background: #02003f;
+}
+
+.divider {
+    height: 1px;
+    margin: 1em 0;
+    background: #898989;
+}
+
+#graph-container{
+    height: 100vh;
+}
+.title-row{
+    text-align: center;
+    font-size: 1.2em;
+    color:#c4c4c4;
+}
+
+.info-row {
+    font-size: 0.7em; 
+    color:#c4c4c4;
 }

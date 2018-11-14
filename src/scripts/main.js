@@ -48,6 +48,7 @@ const TransactionUtils = (function () {
         }
       }
     });
+    App.updateInfo('node-count', App.getNodeCount());
   };
 
   const _buildNodesAndLinks = (tx) => {
@@ -176,6 +177,7 @@ const App = (function () {
       layout,
       graphics,
       renderLinks: true,
+      container: document.getElementById('graph-container'),
       prerender: true,
     },
   );
@@ -186,11 +188,22 @@ const App = (function () {
     console.log(node);
   });
 
+  const updateInfo = (target, value) => {
+    document.getElementById(target).innerHTML = value;
+  };
+
   const startGraph = () => {
+    const startTime = Date.now();
+    setInterval(() => {
+      const elapsedTime = Date.now() - startTime;
+      updateInfo('elapsed-time', elapsedTime);
+    }, 100);
     renderer.run();
     while (renderer.getTransform().scale > INITIAL_ZOOM) {
       renderer.zoomOut();
     }
+    updateInfo('stale-node-time', STALE_NODE_TIME);
+    updateInfo('node-limit', NODE_LIMIT);
     SocketUtils.startSocket(TransactionUtils.handleMessage);
   };
 
@@ -220,6 +233,7 @@ const App = (function () {
     nodeUI.color = WebglUtils.getMixedNodeColor();
     renderer.rerender();
   };
+
 
   const findMatchingNodes = (id, hash, type, test) => graph.getNodesWithId(id, hash, type, test);
 
@@ -254,6 +268,7 @@ const App = (function () {
     removeNode,
     forEachNode,
     removeLink,
+    updateInfo,
   };
 }());
 
