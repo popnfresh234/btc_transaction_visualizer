@@ -14,13 +14,13 @@
                 "allowShortCircuit": true
             }
         ],
-        "no-mixed-operators":[
+        "no-mixed-operators": [
             0
         ],
-        "func-names":[
+        "func-names": [
             0
         ],
-        "no-underscore-dangle":[
+        "no-underscore-dangle": [
             0
         ],
     },

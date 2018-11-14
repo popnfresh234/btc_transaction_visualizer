@@ -22,7 +22,7 @@ const SocketUtils = (function () {
   };
 }());
 
-
+/* eslint-disable no-use-before-define */
 const TransactionUtils = (function () {
   const _addNodes = (nodes, hash, type) => {
     const test = type === 'input' ? 'output' : 'input';
@@ -104,10 +104,13 @@ const TransactionUtils = (function () {
     if (tx.op === 'utx') {
       _buildNodesAndLinks(tx);
     }
-    console.log('Node Count', App.getNodeCount());
     if (App.getNodeCount() > App.getNodeLimit()) {
       App.forEachNode((node) => {
-        App.removeNode(node.id);
+        const timeSinceCreated = new Date().getTime() - node.data.timestamp;
+        if (timeSinceCreated > App.getStaleNodeTime()) {
+          console.log(App.getNodeCount());
+          App.removeNode(node.id);
+        }
       });
     }
   };
@@ -117,10 +120,12 @@ const TransactionUtils = (function () {
     handleMessage,
   };
 }());
+  /* eslint-enable no-use-before-define */
+
 
 const App = (function () {
-  const NODE_LIMIT = 3000;
-  const STALE_NODE_TIME = 60000; // 3 min
+  const NODE_LIMIT = 10000;
+  const STALE_NODE_TIME = 60000 * 9; // 10 min
   const SCALE_COEFFICIENT = 4;
   const INITIAL_ZOOM = 0.04;
   const FORCE_CONFIG = {
@@ -175,30 +180,10 @@ const App = (function () {
     },
   );
 
-  const _getLinkedNodeIds = (node, nodeIds) => {
-    if (!nodeIds.length) {
-      nodeIds.push(node.id);
-    }
-
-    const { links } = node;
-    let linkedId = '';
-    links.forEach((link) => {
-      if (node.data.type !== 'tx') {
-        linkedId = link.fromId;
-      } else {
-        linkedId = link.toId;
-      }
-      if (nodeIds.indexOf(linkedId) === -1) {
-        nodeIds.push(linkedId);
-        _getLinkedNodeIds(App.getNode(linkedId), nodeIds);
-      }
-    });
-    return nodeIds;
-  };
 
   const events = Viva.Graph.webglInputEvents(graphics, graph);
   events.mouseEnter((node) => {
-
+    console.log(node);
   });
 
   const startGraph = () => {
@@ -229,7 +214,8 @@ const App = (function () {
   };
 
   const setTypeMixed = (node) => {
-    node.data.type = 'mixed';
+    const mixedNode = node;
+    mixedNode.data.type = 'mixed';
     const nodeUI = graphics.getNodeUI(node.id);
     nodeUI.color = WebglUtils.getMixedNodeColor();
     renderer.rerender();
