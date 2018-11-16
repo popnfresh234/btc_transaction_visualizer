@@ -105,7 +105,7 @@ const TransactionUtils = (function () {
     if (tx.op === 'utx') {
       _buildNodesAndLinks(tx);
     }
-    if (App.getNodeCount() > App.getNodeLimit()) {
+    while (App.getNodeCount() > App.getNodeLimit()) {
       App.forEachNode((node) => {
         const timeSinceCreated = new Date().getTime() - node.data.timestamp;
         if (timeSinceCreated > App.getStaleNodeTime()) {
