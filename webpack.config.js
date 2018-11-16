@@ -12,7 +12,7 @@ module.exports = {
       { from: './src/css/skeleton.css', to: './skeleton.css' },
       { from: './src/css/normalize.css', to: './normailze.css' },
       { from: './src/css/style.css', to: './style.css' },
-      { from: './src/favicon.ico', to: './favicon.ico' },
+      { from: './src/icons/favicon.ico', to: './favicon.ico' },
     ]),
   ],
   devtool: 'source-map',
