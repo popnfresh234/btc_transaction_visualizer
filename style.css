@@ -9,6 +9,10 @@
     right: 0;
 } */
 
+a {
+    color: inherit; 
+    text-decoration: inherit; 
+  }
 
 body {
     background: #02003f;
@@ -22,6 +26,7 @@ body {
 
 #graph-container{
     height: 100vh;
+
 }
 .title-row{
     text-align: center;
@@ -32,4 +37,20 @@ body {
 .info-row {
     font-size: 0.7em; 
     color:#c4c4c4;
+}
+
+.values {
+    text-align: right;
+}
+
+.contact-info{
+    font-size: 1.2em;
+    text-align: center;
+}
+
+@media (min-width: 550px) {
+    #graph-container{
+        border-left: 1px solid #898989;
+    }
+
 }
