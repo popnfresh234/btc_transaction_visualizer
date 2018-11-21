@@ -289,7 +289,7 @@ const TransactionUtils = (function () {
         } else {
           matchedNodes.forEach((matchedNode) => {
             App.addLink(hash, matchedNode.id);
-            App.setTypeMixed(matchedNode);
+            App.setType(matchedNode, 'mixed');
           });
         }
       }
@@ -305,27 +305,6 @@ const TransactionUtils = (function () {
     _addNodes(out, hash, 'output');
   };
 
-  const _getLinkedNodeIds = (node, nodeIds) => {
-    if (!nodeIds.length) {
-      nodeIds.push(node.id);
-    }
-
-    const { links } = node;
-    let linkedId = '';
-    for (let i = 0; i < links.length; i++) {
-      const link = links[i];
-      if (node.data.type !== 'tx') {
-        linkedId = link.fromId;
-      } else {
-        linkedId = link.toId;
-      }
-      if (nodeIds.indexOf(linkedId) === -1) {
-        nodeIds.push(linkedId);
-        _getLinkedNodeIds(App.getNode(linkedId), nodeIds);
-      }
-    }
-    return nodeIds;
-  };
 
   const _isBoring = (nodeIds) => {
     let txCount = 0;
@@ -398,24 +377,13 @@ const App = (function () {
     this.color = color;
   }
 
-  const _getNodeColor = (node) => {
-    const colorMap = {
-      tx: () => WebglUtils.getTxNodeColor(),
-      input: () => WebglUtils.getInputNodeColor(),
-      output: () => WebglUtils.getOutputNodeColor(),
-      mixed: () => WebglUtils.getMixedNodeColor(),
-    };
-    if (node.data && colorMap[node.data.type]) {
-      return colorMap[node.data.type]();
-    } return WebglUtils.getUnknownNodeColor();
-  };
 
   const graph = Viva.Graph.graph();
   const layout = Viva.Graph.Layout.forceDirected(graph, FORCE_CONFIG);
   const graphics = Viva.Graph.View.webglGraphics(GRAPHICS_OPTIONS);
   const circleNode = WebglUtils.buildCircleNodeShader();
   graphics.setNodeProgram(circleNode);
-  graphics.node(node => new _WebglCircle(50 * SCALE_COEFFICIENT, _getNodeColor(node)));
+  graphics.node(node => new _WebglCircle(50 * SCALE_COEFFICIENT, App.getNodeColor(node)));
   graphics.link(() => Viva.Graph.View.webglLine(WebglUtils.getLinkColor()));
   const renderer = Viva.Graph.View.renderer(
     graph,
@@ -429,8 +397,39 @@ const App = (function () {
   );
 
 
+  const _getLinkedNodeIds = (node, nodeIds) => {
+    if (!nodeIds.length) {
+      nodeIds.push(node.id);
+    }
+
+    const { links } = node;
+    let linkedId = '';
+    for (let i = 0; i < links.length; i++) {
+      const link = links[i];
+      if (node.data.type !== 'tx') {
+        linkedId = link.fromId;
+      } else {
+        linkedId = link.toId;
+      }
+      if (nodeIds.indexOf(linkedId) === -1) {
+        nodeIds.push(linkedId);
+        _getLinkedNodeIds(App.getNode(linkedId), nodeIds);
+      }
+    }
+    return nodeIds;
+  };
+
+  const _markNodesInteresting = (node) => {
+    const linkedNodeIds = _getLinkedNodeIds(node, []);
+    for (let i = 0; i < linkedNodeIds.length; i++) {
+      const interestingNode = App.getNode(linkedNodeIds[i]);
+      interestingNode.data.interesting = !interestingNode.data.interesting;
+    }
+  };
+
   const events = Viva.Graph.webglInputEvents(graphics, graph);
-  events.mouseEnter((node) => {
+  events.dblClick((node) => {
+    _markNodesInteresting(node);
     console.log(node);
   });
 
@@ -472,11 +471,23 @@ const App = (function () {
     graph.addLink(source, target);
   };
 
-  const setTypeMixed = (node) => {
-    const mixedNode = node;
-    mixedNode.data.type = 'mixed';
+  const getNodeColor = (node) => {
+    const colorMap = {
+      tx: () => WebglUtils.getTxNodeColor(),
+      input: () => WebglUtils.getInputNodeColor(),
+      output: () => WebglUtils.getOutputNodeColor(),
+      mixed: () => WebglUtils.getMixedNodeColor(),
+    };
+    if (node.data && colorMap[node.data.type]) {
+      return colorMap[node.data.type]();
+    } return WebglUtils.getUnknownNodeColor();
+  };
+
+  const setType = (node, type) => {
+    const updatedNode = node;
+    updatedNode.data.type = type;
     const nodeUI = graphics.getNodeUI(node.id);
-    nodeUI.color = WebglUtils.getMixedNodeColor();
+    nodeUI.color = getNodeColor(updatedNode);
     renderer.rerender();
   };
 
@@ -504,7 +515,8 @@ const App = (function () {
     loadSamples,
     addNode,
     addLink,
-    setTypeMixed,
+    getNodeColor,
+    setType,
     findMatchingNodes,
     getNodeCount,
     getNodeLimit,
