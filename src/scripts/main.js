@@ -87,9 +87,11 @@ const TransactionUtils = (function () {
     while (App.getNodeCount() > App.getNodeLimit()) {
       App.forEachNode((node) => {
         const timeSinceCreated = new Date().getTime() - node.data.timestamp;
-        if (timeSinceCreated > App.getStaleNodeTime()) {
-          console.log(App.getNodeCount());
-          App.removeNode(node.id);
+        if (timeSinceCreated > App.getStaleNodeTime() && !node.data.interesting) {
+          const linkedToInteresting = App.checkForInterestingLinks(node);
+          if (!linkedToInteresting) {
+            App.removeNode(node.id);
+          }
         }
       });
     }
@@ -173,18 +175,40 @@ const App = (function () {
     return nodeIds;
   };
 
+  const setInteresting = (node) => {
+    const interestingNode = node;
+    if (interestingNode.data) {
+      interestingNode.data.interesting = !interestingNode.data.interesting;
+      App.setType(node, node.data.type);
+    }
+  };
+
   const _markNodesInteresting = (node) => {
     const linkedNodeIds = _getLinkedNodeIds(node, []);
     for (let i = 0; i < linkedNodeIds.length; i++) {
       const interestingNode = App.getNode(linkedNodeIds[i]);
-      interestingNode.data.interesting = !interestingNode.data.interesting;
+      setInteresting(interestingNode);
     }
+  };
+
+  const checkForInterestingLinks = (node) => {
+    const linkedNodeIds = _getLinkedNodeIds(node, []);
+    for (let i = 0; i < linkedNodeIds.length; i++) {
+      const testNode = App.getNode(linkedNodeIds[i]);
+      if (testNode.data.interesting) {
+        return true;
+      }
+    }
+    return false;
   };
 
   const events = Viva.Graph.webglInputEvents(graphics, graph);
   events.dblClick((node) => {
     _markNodesInteresting(node);
-    console.log(node);
+  });
+
+  events.mouseEnter((node) => {
+    console.log(node.data);
   });
 
   const updateInfo = (target, value) => {
@@ -232,6 +256,9 @@ const App = (function () {
       output: () => WebglUtils.getOutputNodeColor(),
       mixed: () => WebglUtils.getMixedNodeColor(),
     };
+    if (node.data.interesting) {
+      return WebglUtils.getUnknownNodeColor();
+    }
     if (node.data && colorMap[node.data.type]) {
       return colorMap[node.data.type]();
     } return WebglUtils.getUnknownNodeColor();
@@ -271,6 +298,8 @@ const App = (function () {
     addLink,
     getNodeColor,
     setType,
+    setInteresting,
+    checkForInterestingLinks,
     findMatchingNodes,
     getNodeCount,
     getNodeLimit,
